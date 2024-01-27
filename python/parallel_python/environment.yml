@@ -1,0 +1,16 @@
+name: parallel
+channels:
+  - conda-forge
+dependencies:
+  - python>3.8
+  - numpy
+  - pillow
+  - matplotlib
+  - dask
+  - distributed
+  - joblib
+  - cupy
+  - jupyter
+  - jupyterlab
+  - pip:
+    - jupyterlab-rise
