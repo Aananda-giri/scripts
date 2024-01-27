@@ -1,4 +1,7 @@
 # Parallel Programming with Python Tutorial
+* [vid. source](https://www.youtube.com/watch?v=AG1soUh4-nU&t=4504s)
+* [slides. source](https://www.youtube.com/watch?v=AG1soUh4-nU&t=4504s)
+* [code. source](https://github.com/ycrc/parallel_python)
 
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/ycrc/parallel_python/master)
 
