@@ -1,6 +1,6 @@
-* **Our own programming language on top of python**
-* [source](https://youtu.be/1WpKsY9LBlY?si=Tj3rTPzlm4qL0kJ3)
-* [Code](https://github.com/VOYAGERX013/ShadowScript)
+* **programming language on top of python**
+* [vid. source]([https://youtu.be/1WpKsY9LBlY?si=Tj3rTPzlm4qL0kJ3](https://www.youtube.com/watch?v=1WpKsY9LBlY))
+* [Code. source](https://github.com/VOYAGERX013/ShadowScript)
 
 
 ```
