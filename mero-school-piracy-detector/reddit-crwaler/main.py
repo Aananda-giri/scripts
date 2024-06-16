@@ -1,8 +1,7 @@
 import csv
 from praw_code import sub_exists, get_reddit_posts
-from gemini_functions import is_post_about_mero_school
-from drive_functions import is_this_drive_link, process_drive_link
-
+from gemini_response import is_mero_school_related_post
+from drive_crawler import get_owner_info
 
 # Add one_drive, mega, others
 storage_service_providers = ['https://drive.google.com/']
@@ -28,25 +27,23 @@ for subreddit_name in subreddit_names:
             # check if post is about mero-school
             if is_post_about_mero_school(post['title'], comment['body']):
                 for link in comment['links_contained']:
-                    if is_this_drive_link(link):
-                        user_name, email = process_drive_link(link)
-
+                    # returns owner info if link is google drive link so no need to check if it is google drive link
+                    owner_info = get_owner_info(link)
+                    if owner_info:
                         piracy_data.append({
                             'comment_link' : comment['comment_link'],
                             'post_link' : each_post['url'],
                             'link' : link,
                             'link_type' : 'google-drive',
-                            'user_email' : user_email,
-                            'user_name' : user_name
+                            'owner_info' : [{'displayName': '078bme038', 'emailAddress': '078bme038@student.ioepc.edu.np'}],
                         })
                     else:
                         piracy_data.append({
                             'comment_link': comment['comment_link'],
-                            'post_link':each_post['url']
+                            'post_link':each_post['url'],
                             'link': link,
                             'link_type':'other',
-                            'user_email': None,
-                            'user_name': None
+                            'owner_info':None
                         })
 
 # Save privacy_data to csv file
