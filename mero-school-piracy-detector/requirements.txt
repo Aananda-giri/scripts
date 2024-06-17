@@ -1,0 +1,7 @@
+boto3==1.28.84
+Flask==2.3.2
+Flask-SocketIO==5.3.6
+google-generativeai==0.4.0
+#gunicorn==s21.2.0
+python-dotenv==1.0.0
+PyDrive2==1.17.0
