@@ -53,7 +53,7 @@ def get_reddit_posts(subreddit, datetime_before, datetime_after=None, how_many=N
     after_timestamp = int(datetime_after.timestamp()) if datetime_after else 0
     
     # for submission in [reddit.submission(id='1cizbg3')]:
-    for submission in subreddit.new(limit=how_many):
+    # for submission in subreddit.new(limit=how_many):
         if (submission.created_utc < before_timestamp) and (submission.created_utc > after_timestamp):
             post_data = {
                 'title': submission.title,

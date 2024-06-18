@@ -3,7 +3,7 @@
 [ ] <One time operation> Crawl all posts since inception of IOENepal
 [ ] Test if code is working for custom link: https://reddit.com/r/IOENepal/comments/1cizbg3/mero_school_ko_videos_haru_bhako_jati_share_garum/#chat-image#lightbox
 [ ] Test if code is working for past 24 hours
-[ ] Make it async.
+[ ] Make it async. + Mongo Db
 
 ## Pseudocode:
 while True:
