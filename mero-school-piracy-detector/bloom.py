@@ -54,13 +54,13 @@ class BloomFilterThread(threading.Thread):
         return self.size
 
     def add(self, item):
-        print('add invoked')
+        # print('add invoked')
         if type(item)==list:
-            print('add item is list')
+            # print('add item is list')
             for each_item in item:
                 self.bloom.add(each_item)
         else:
-            print('type not list')
+            # print('type not list')
             self.bloom.add(item)
 
     def exists(self, item):

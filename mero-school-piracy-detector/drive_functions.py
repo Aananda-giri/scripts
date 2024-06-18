@@ -50,7 +50,7 @@ class DriveFunctions:
             GOOGLE_DRIVE_CREDENTIALS = userdata.get('GOOGLE_DRIVE_CREDENTIALS')
             drive = GoogleDrive(DriveFunctions.login_with_service_account(json.loads(GOOGLE_DRIVE_CREDENTIALS)))
         else:
-            print('Code is not running in Google Colab.')
+            # print('Code is not running in Google Colab.')
             
             GOOGLE_DRIVE_CREDENTIALS = json.loads(os.environ.get('GOOGLE_DRIVE_CREDENTIALS'))
             # print(f'\n creds: {GOOGLE_DRIVE_CREDENTIALS} \n')

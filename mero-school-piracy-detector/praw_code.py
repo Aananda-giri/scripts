@@ -1,17 +1,18 @@
-import config
 import datetime
 import math
 import praw
 from prawcore import NotFound
+import os
 import re
-
+from dotenv import load_dotenv
+load_dotenv()
 
 reddit = praw.Reddit(
-    client_id= config.RD_CLIENT_ID,# os.environ['RD_CLIENT_ID'],
-    client_secret= config.RD_CLIENT_SECRET, # os.environ['rd_client_secret'],
-    password= config.RD_PASS,    # os.environ['rd_pass'],
+    client_id= os.environ['RD_CLIENT_ID'],          # config.RD_CLIENT_ID,
+    client_secret= os.environ['RD_CLIENT_SECRET'],  # config.RD_CLIENT_SECRET,
+    password= os.environ['RD_PASS'],                # config.RD_PASS, 
     user_agent="praw_test",
-    username="Alternative-Ad-8849",
+    username=os.environ['USERNAME'],
 )
 
 # it is a read-only instance i.e. it can't be used to modify reddit
@@ -42,7 +43,10 @@ def extract_urls(text):
     return list(set(urls))
 
 
-def get_reddit_posts(subreddit, datetime_before, datetime_after=None, how_many=None):
+def get_reddit_posts(subreddit_name, datetime_before=None, datetime_after=None, how_many=None):
+    '''
+        * Returns posts and comments only if the comments contain links
+    '''
     if not sub_exists(subreddit_name):
         print(f"Subreddit {subreddit_name} does not exist")
         return
@@ -53,7 +57,7 @@ def get_reddit_posts(subreddit, datetime_before, datetime_after=None, how_many=N
     after_timestamp = int(datetime_after.timestamp()) if datetime_after else 0
     
     # for submission in [reddit.submission(id='1cizbg3')]:
-    # for submission in subreddit.new(limit=how_many):
+    for submission in subreddit.new(limit=how_many):
         if (submission.created_utc < before_timestamp) and (submission.created_utc > after_timestamp):
             post_data = {
                 'title': submission.title,
@@ -78,6 +82,7 @@ def get_reddit_posts(subreddit, datetime_before, datetime_after=None, how_many=N
                         # These are links contained in the comment body
                         'links_contained': links_contained
                     })
+                # time.sleep(0.2) # for praw rate limit
                 
             if post_data['comments']:
                 # only yield if there are links in the comments
@@ -86,20 +91,20 @@ def get_reddit_posts(subreddit, datetime_before, datetime_after=None, how_many=N
             # posts.append(post_data)
     # return posts
 
-# if __name__ == "__main__":
-# # Example usage:
-subreddit_name = 'IOENepal'  # specify your subreddit
-sleep_duration = 12 * 60 * 60   # 12 hours
+if __name__ == "__main__":
+    # # Example usage:
+    subreddit_name = 'IOENepal'  # specify your subreddit
+    sleep_duration = 12 * 60 * 60   # 12 hours
 
-datetime_now = datetime.datetime.now() 
+    datetime_now = datetime.datetime.now() 
 
-# previous crawl time
-datetime_previous = datetime_now - datetime.timedelta(seconds=sleep_duration)
+    # previous crawl time
+    datetime_previous = datetime_now - datetime.timedelta(seconds=sleep_duration)
 
-# reddit_posts = list(get_reddit_posts(subreddit=subreddit_name, datetime_before=datetime_now, datetime_after=datetime_previous, how_many=None))
-reddit_posts = list(get_reddit_posts(subreddit=subreddit_name, datetime_before=None, datetime_after=None, how_many=None))
-print(len(reddit_posts))
-urls = set()
-for comment in reddit_posts[0]['comments']:
-    # print(comment['links_contained'])
-    [urls.add(link) for link in comment['links_contained']]
+    # reddit_posts = list(get_reddit_posts(subreddit=subreddit_name, datetime_before=datetime_now, datetime_after=datetime_previous, how_many=None))
+    reddit_posts = list(get_reddit_posts(subreddit=subreddit_name, datetime_before=None, datetime_after=None, how_many=None))
+    print(len(reddit_posts))
+    urls = set()
+    for comment in reddit_posts[0]['comments']:
+        # print(comment['links_contained'])
+        [urls.add(link) for link in comment['links_contained']]

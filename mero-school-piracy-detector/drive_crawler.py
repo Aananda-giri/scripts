@@ -19,6 +19,7 @@ def get_owner_info(link):
         owner_data = []
         is_drive_id, drive_id = DriveFunctions.is_google_drive_link(link)
         if is_drive_id and drive_id:
+            drive = DriveFunctions.login()
             folders_to_crawl = [drive.CreateFile({'id': drive_id})]
             if folders_to_crawl:
                 folder = folders_to_crawl[0]
@@ -27,15 +28,18 @@ def get_owner_info(link):
                 except Exception as ex:
                     err = {'Exception': str(ex), 'link': link, 'note': 'folder.FetchMetadata()'}
                     print(err)
+                    return None, None
                     # save_to_json(new_data = err, filename = 'exceptions.json')
                 for owner in folder['owners']:
                     owner_data.append({
                         'displayName': owner['displayName'],
                         'emailAddress': owner['emailAddress']
                         })
-                return owner_data
+                return owner_data, is_drive_id
+        return None, None
     except Exception as ex:
         print(ex)
+        return None, None
 
 if __name__=="__main__":
     # Example: get owner of test link
