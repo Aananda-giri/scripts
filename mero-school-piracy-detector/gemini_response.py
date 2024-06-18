@@ -14,9 +14,6 @@ model = genai.GenerativeModel('gemini-1.5-flash')
 
 
 def is_mero_school_related_post(post_content, temperature=0.0):
-    mero_school_starting = ['meroschool', 'mero school', 'mero_school']
-    return True in [m in post_content.lower() for m in mero_school_starting]
-
     prompt="This is reddit post. Your job is to classify whether or not this post is related to \"mero-school\". Mero school is educational platform that make videos similar to coursera.  The problem is people download the videos and post the links to downloaded videos in reddit. which is piracy. Give one word respose: \"true\" if this post is related to mero-school and \"false\" if this post is not related to mero-school. note: The post might contain \"nepali\" language or in \"english\" language. This is the post content: ```" + post_content+"```"
     try:
         response_text = model.generate_content(prompt).text
@@ -28,6 +25,9 @@ def is_mero_school_related_post(post_content, temperature=0.0):
             return False
     except Exception as Ex:
         print(Ex)
+        # This is simpler method avoiding gemini rate limits
+        mero_school_starting = ['meroschool', 'mero school', 'mero_school']
+        return True in [m in post_content.lower() for m in mero_school_starting]
 
 
 
