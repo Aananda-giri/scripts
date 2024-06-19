@@ -32,9 +32,22 @@ Implementation:
 After generating embeddings (using any of the above methods), use an ANN algorithm like HNSW (Hierarchical Navigable Small World), LSH (Locality-Sensitive Hashing), or Annoy.
 Tools: faiss library by Facebook, nmslib, Annoy by Spotify.
 
+Locality-Sensitive Hashing (LSH):
+
+LSH for Approximate Search: LSH is a technique for efficiently finding similar items in high-dimensional spaces. You can project your filename embeddings (from method 1 or 2) into a lower-dimensional space using LSH. This allows for faster approximate nearest neighbor search during retrieval.
+
 5. Custom Similarity Metrics
 Description: For short file names, traditional methods might not capture semantics well. Custom similarity metrics based on domain knowledge can be useful.
 Implementation:
 Develop custom rules or heuristics for similarity (e.g., character-level similarity, edit distance).
 Combine custom metrics with traditional methods for better results.
 Tools: Implement using basic Python functions or leverage existing libraries for string comparison like Levenshtein.
+
+
+6. Hybrid approaches:
+
+Combining Embedding & LSH: You can combine embedding-based methods for semantic similarity with LSH for efficient retrieval. This leverages the strengths of both approaches: semantic similarity capture and fast search.
+Additional considerations for short filenames:
+
+Limited context: Due to the short length of filenames, Consider if there's additional context available, like file paths or associated metadata, that can be incorporated to improve semantic understanding.
+Data augmentation: If you have a limited dataset of filenames, explore data augmentation techniques like synonym replacement or character-level perturbations to artificially expand your data for training your embedding models.
