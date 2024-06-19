@@ -9,11 +9,11 @@
 # Reddit Crawler
 [ ] Steps to get new drive api_key and gemini api keys
 [ ] Data visualization
-[ ] <One time operation> Crawl all posts since inception of IOENepal
-[ ] Test if code is working for custom link: https://reddit.com/r/IOENepal/comments/1cizbg3/mero_school_ko_videos_haru_bhako_jati_share_garum/#chat-image#lightbox
+[X] <One time operation> Crawl all posts since inception of IOENepal
+[X] Test if code is working for custom link: https://reddit.com/r/IOENepal/comments/1cizbg3/mero_school_ko_videos_haru_bhako_jati_share_garum/#chat-image#lightbox
 [ ] Test if code is working for past 24 hours
 [ ] Make it async. + Mongo Db
-
+[ ] Tests: (Reddit, gemini) api are working
 ## Pseudocode:
 while True:
     for post in new_posts:
