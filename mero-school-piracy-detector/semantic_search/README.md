@@ -1,7 +1,6 @@
 # Alternatives
 
 1. **TF-IDF with Cosine Similarity**
-* [code](https://drive.google.com/drive/u/4/folders/1BrD_1HGvMr7pMXLca6gyEuVWkCWkaW_t)
 * **TF-IDF (Term Frequency-Inverse Document Frequency)** is a statistical measure used to evaluate the importance of a word in a document relative to a corpus. Cosine similarity measures the cosine of the angle between two vectors, giving a measure of similarity between them.
 
 * **Implementation:**
