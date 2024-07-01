@@ -1,0 +1,5 @@
+!pip install langchain
+!pip install pinecode-client
+!pip install pypdf
+!pip install openai
+!pip install tiktoken
