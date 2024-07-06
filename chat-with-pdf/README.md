@@ -6,7 +6,8 @@
 
 
 # Pseudocode:
-* [ ] download pdf from google drive or url
+[ ] if pdf_size < size_threshold:
+* [ ] download pdf (gdown + requests)  from google drive or url
 * [ ] if it does not exists in vector store:
         split into chunks
         get embeddings
