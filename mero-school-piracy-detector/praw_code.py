@@ -29,18 +29,39 @@ def sub_exists(sub):
 # sub_exists('IOENepal')
 # sub_exists('IOENepaldsfa3')
 
-
-
+# def extract_urls(text):
+#     # Regular expression pattern to match URLs
+#     url_pattern = re.compile(
+#         r'http[s]?://'  # http:// or https://
+#         r'(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|'  # Domain name
+#         r'(?:%[0-9a-fA-F][0-9a-fA-F]))+'  # or URL-encoded characters
+#     )
+#     urls = url_pattern.findall(text)
+#     return list(set(urls))
 
 def extract_urls(text):
-    # Regular expression pattern to match URLs
-    url_pattern = re.compile(
-        r'http[s]?://'  # http:// or https://
-        r'(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|'  # Domain name
-        r'(?:%[0-9a-fA-F][0-9a-fA-F]))+'  # or URL-encoded characters
-    )
-    urls = url_pattern.findall(text)
-    return list(set(urls))
+    '''
+    # links are values within () if pattern [link_text](actual_link) exists
+
+    r'\[.*?\]\((.*?)\)' is the regular expression pattern used to match the links.
+    \[.*?\] matches the text within the square brackets.
+    \(.*?\) matches the text within the parentheses, which is the actual link we want to extract.
+    The ? after * makes the match non-greedy, ensuring it stops at the first closing parenthesis.
+    '''
+    # Regular expression to find URLs within parentheses
+    pattern = r'\[.*?\]\((.*?)\)'
+    
+    # Find all matches in the text
+    links = re.findall(pattern, text)
+    
+    return list(set(links))
+
+
+# # E.g.
+# text = '''You can find here
+# [https://drive.google.com/drive/folders/1Ruot2y65dzKW5vf7FYmlpXyK1w76Eqf8?usp=drive\\_link](https://drive.google.com/drive/folders/1Ruot2y65dzKW5vf7FYmlpXyK1w76Eqf8?usp=drive_link)
+# also maybe here: [https://drive.google.com/drive/folders/1Ruot2y65dzKW5vf7FYmlpXyK1w76Eqf8?usp=drive\\_link](https://drive.google.com/drive/folders/2Ruot2y65dzKW5vf7FYmlpXyK1w76Eqf8?usp=drive_link)'''
+# print(extract_urls(text))
 
 
 def get_reddit_posts(subreddit_name, datetime_before=None, datetime_after=None, how_many=None):

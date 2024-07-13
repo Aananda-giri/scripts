@@ -6,7 +6,7 @@ from drive_crawler import get_owner_info
 from gemini_response import is_mero_school_related_post
 from praw_code import sub_exists, get_reddit_posts
 from csv_functions import save_to_csv, read_csv
-
+from functions import is_social_media_link
 # Bloom Filter to store crawled page links
 crawled_page_links = get_bloom_thread()
 
@@ -20,7 +20,7 @@ sleep_duration = 12 * 60 * 60   # 12 hours
 subreddit_datas = [
     {
         'subreddit': 'IOENepal',
-        'crwal_since_beginning': False
+        'crwal_since_beginning': False  # False by default. (it is set to true later if subreddit is not already crawled from the beginning)
     }
 ]
 
@@ -31,12 +31,16 @@ for subreddit_data in subreddit_datas:
     if subreddit_link not in crawled_page_links:
         # Not already crawled from the beginning
         crawled_page_links.add(subreddit_link)
-        subreddit_data['crwal_since_beginning']=True
+        subreddit_data['crwal_since_beginning']=True    # Enable to crawl from begining.
 
 datetime_now = datetime.datetime.now() 
 # previous crawl time
 datetime_previous = datetime_now - datetime.timedelta(seconds=sleep_duration)
 
+# Data for pdf engine
+pdf_engine_data = []
+
+# To store piracy data
 piracy_data = []
 posts_crawled = 0
 comments_crawled = 0
@@ -64,7 +68,7 @@ for subreddit_data in subreddit_datas:
             # Save crwaled page link using bloom filter
             crawled_page_links.add(each_post['url'])
         else:
-            # Skip subreddit if page is already crawled
+            # page is already crawled: Skip subreddit 
             # Since subreddits are fetched using 'new' filter, we can use `break` instead of `continue`
             # break
             # But again gemini is giving "429:quota exhausted" error so we are using `continue`
@@ -73,36 +77,44 @@ for subreddit_data in subreddit_datas:
         for comment in each_post['comments']:
             comments_crawled += 1
             # check if post is about mero-school
-            if is_mero_school_related_post(each_post['title'] + each_post['selftext'] + '\n\n' + comment['body']):
-                print(f'Post: {each_post["title"]} {each_post["url"]}')
-                for link in comment['links_contained']:
-                    # returns owner info if link is google drive link so no need to check if it is google drive link
-                    owner_info, is_drive_link = get_owner_info(link)
-                    if owner_info:
-                        piracy_data.append({
-                            'comment_link' : comment['comment_link'],
-                            'post_link' : each_post['url'],
-                            'link' : link,
-                            'link_type' : 'google-drive',
-                            'owner_info' : [{'displayName': '078bme038', 'emailAddress': '078bme038@student.ioepc.edu.np'}],
-                        })
-                    elif is_drive_link:
-                        piracy_data.append({
-                            'comment_link': comment['comment_link'],
-                            'post_link':each_post['url'],
-                            'link': link,
-                            'link_type':'google-drive-private',
-                            'owner_info':None
-                        })
-                    else:
-                        piracy_data.append({
-                            'comment_link': comment['comment_link'],
-                            'post_link':each_post['url'],
-                            'link': link,
-                            'link_type':'other',
-                            'owner_info':None
-                        })
-            else:print('.', end='') # To know that the code is running
+            # if is_mero_school_related_post(each_post['title'] + each_post['selftext'] + '\n\n' + comment['body']):
+            mero_school_post = is_mero_school_related_post(each_post['title'] + each_post['selftext'] + '\n\n' + comment['body'])
+            print(f'Post: {each_post["title"]} {each_post["url"]}')
+            '''comment['links_contained'] are Links within the comment content.
+            e.g. 
+            if comment_content = "yo drawing ko ho hai: https://drive.google.com/drive/mobile/folders/1jeQcQA0jdzvLCz-cTTR3LVioVO5bqPh9?usp=drive_link&pli=1"
+            then comment['links_contained'] = ['https://drive.google.com/drive/mobile/folders/1jeQcQA0jdzvLCz-cTTR3LVioVO5bqPh9?usp=drive_link&pli=1']
+            '''
+            for link in comment['links_contained']:
+                # returns owner info if link is google drive link so no need to check if it is google drive link
+                owner_info, is_drive_link = get_owner_info(link)
+                
+                link_type = None
+                if is_drive_link and owner_info:
+                    link_type = 'google-drive'    
+                elif is_drive_link and not owner_info:
+                    link_type = 'google-drive-private'
+                else:
+                    # Check if link belongs to social media (e.g. facebook, twitter, instagram, youtube, etc.)
+                    is_social_media, social_media_name = is_social_media_link(link)
+                    if is_social_media:
+                        link_type = social_media_name
+                    else:    
+                        link_type = 'other'
+                new_data = {
+                    'comment_link' : comment['comment_link'],
+                    'post_link' : each_post['url'],
+                    'link' : link,
+                    'link_type' : link_type,
+                    'owner_info' : owner_info,
+                }
+                if mero_school_post:
+                    # mero school piracy data
+                    piracy_data.append(new_data)
+                # Data for pdf engine
+                pdf_engine_data.append(new_data)
+                    
+            print('.', end='') # To know that the code is running
             
             # For gemini & praw Rate limits
             time.sleep(1)
@@ -116,4 +128,7 @@ for subreddit_data in subreddit_datas:
 
     # Save piracy data csv file
     save_to_csv(piracy_data, 'piracy_data.csv')
+
+    # Save pdf engine data csv file
+    save_to_csv(pdf_engine_data, 'pdf_engine_data.csv')
     

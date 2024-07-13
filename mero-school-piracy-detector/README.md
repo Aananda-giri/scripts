@@ -1,13 +1,8 @@
 # piracy-Detector:
 * Detect if mero-school videos are shared reddit.
 
-## Working
-* Reddit-crawler: crwal reddit posts from given subreddit lists e.g. IOENepal
-* gemini: To Check if the post is talking about mero-school videos
-* Save the links given by suspicious posts in csv file.
 
-
-# Reddit Crawler
+# TODO: Reddit Crawler
 [ ] Steps to get new drive api_key and gemini api keys
 [ ] Data visualization
 [X] <One time operation> Crawl all posts since inception of IOENepal
@@ -15,7 +10,16 @@
 [ ] Test if code is working for past 24 hours
 [ ] Make it async. + Mongo Db
 [ ] Tests: (Reddit, gemini) api are working
+[ ] Re-organize files and functions.
+    * functions.is_social_media_link is copied from scrapy_engine.functions (use original)
+    * functions.DriveFunctions is copied from drive_crawler.drive_functions (use original)
+    * merge drive_crawler.get_owner_info to drive_crawler.drive_functions
+    
 
+## Working
+* Reddit-crawler: crwal reddit posts from given subreddit lists e.g. IOENepal
+* gemini: To Check if the post is talking about mero-school videos
+* Save the links given by suspicious posts in csv file.
 
 ## Pseudocode:
 while True:

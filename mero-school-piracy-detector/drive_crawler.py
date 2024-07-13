@@ -1,4 +1,4 @@
-from drive_functions import DriveFunctions
+from functions import DriveFunctions
 import json
 import os
 import sys
@@ -15,9 +15,10 @@ def get_owner_info(link):
     # output:
     owner_info = [{'displayName': '078bme038', 'emailAddress': '078bme038@student.ioepc.edu.np'}]
     '''
+    owner_data = []
+    is_drive_id, drive_id = DriveFunctions.is_google_drive_link(link)
     try:
-        owner_data = []
-        is_drive_id, drive_id = DriveFunctions.is_google_drive_link(link)
+        
         if is_drive_id and drive_id:
             drive = DriveFunctions.login()
             folders_to_crawl = [drive.CreateFile({'id': drive_id})]
@@ -28,7 +29,7 @@ def get_owner_info(link):
                 except Exception as ex:
                     err = {'Exception': str(ex), 'link': link, 'note': 'folder.FetchMetadata()'}
                     print(err)
-                    return None, None
+                    return None, is_drive_id
                     # save_to_json(new_data = err, filename = 'exceptions.json')
                 for owner in folder['owners']:
                     owner_data.append({
@@ -36,10 +37,10 @@ def get_owner_info(link):
                         'emailAddress': owner['emailAddress']
                         })
                 return owner_data, is_drive_id
-        return None, None
+        return None, is_drive_id
     except Exception as ex:
         print(ex)
-        return None, None
+        return None, is_drive_id
 
 if __name__=="__main__":
     # Example: get owner of test link
