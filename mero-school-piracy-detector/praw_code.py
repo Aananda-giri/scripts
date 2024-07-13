@@ -6,6 +6,7 @@ import os
 import re
 from dotenv import load_dotenv
 load_dotenv()
+import urllib
 
 reddit = praw.Reddit(
     client_id= os.environ['RD_CLIENT_ID'],          # config.RD_CLIENT_ID,
@@ -29,39 +30,63 @@ def sub_exists(sub):
 # sub_exists('IOENepal')
 # sub_exists('IOENepaldsfa3')
 
-# def extract_urls(text):
-#     # Regular expression pattern to match URLs
-#     url_pattern = re.compile(
-#         r'http[s]?://'  # http:// or https://
-#         r'(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|'  # Domain name
-#         r'(?:%[0-9a-fA-F][0-9a-fA-F]))+'  # or URL-encoded characters
-#     )
-#     urls = url_pattern.findall(text)
-#     return list(set(urls))
+import re
 
-def extract_urls(text):
+
+def convert_facebook_link(link):
     '''
-    # links are values within () if pattern [link_text](actual_link) exists
-
-    r'\[.*?\]\((.*?)\)' is the regular expression pattern used to match the links.
-    \[.*?\] matches the text within the square brackets.
-    \(.*?\) matches the text within the parentheses, which is the actual link we want to extract.
-    The ? after * makes the match non-greedy, ensuring it stops at the first closing parenthesis.
+    convert facebook follow links to actual links
+    e.g.
+    facebook follow link: https://l.facebook.com/l.php?u=https%3A%2F%2Fdrive.google.com%2Fdrive%2Ffolders%2F1HLW6uCzIqTHYLC_qyDgJuG5TFlvuQXLg%3Fusp%3Ddrive_link&h=AT11bALWUdEIJkMteYsptSXhxkhyqO1J19pq-o9pyhbBH29ulnEOYXX_mo7wHAH6fJ0RniWozmViIyfVKeaMDSqjCqR_L4Peka30YqdDaCp0NEAn95ZyxWNq4l30wLtV0eZnERkkYjMKAFU&s=1
     '''
-    # Regular expression to find URLs within parentheses
-    pattern = r'\[.*?\]\((.*?)\)'
-    
-    # Find all matches in the text
-    links = re.findall(pattern, text)
-    
-    return list(set(links))
+    if not link.startswith('https://l.facebook.com/l.php?u='):
+        # print('not facebook follow link')
+        return link
+    else:
+        # print('isfacebook follow link')
+        # Extract the actual link from the facebook follow link
+        actual_link = re.search(r'u=(.*?)&', link).group(1)
+        # Decode the URL
+        actual_link = urllib.parse.unquote(actual_link)
+        return actual_link
 
+def extract_links(text):
+    # Regular expression to find URLs within parentheses in markdown format
+    markdown_pattern = r'\[.*?\]\((.*?)\)'
+    # Extract markdown links
+    markdown_links = re.findall(markdown_pattern, text)
+    
+    # Remove markdown links from the text
+    text_without_markdown = re.sub(markdown_pattern, '', text)
+    
+    # Regular expression to find direct URLs
+    url_pattern = r'https?://\S+'
+    # Extract direct links
+    direct_links = re.findall(url_pattern, text_without_markdown)
+    
+    # Combine both types of links
+    all_links = markdown_links + direct_links
+    
+    # Convert facebook follow links to actual links
+    all_links = [convert_facebook_link(link) for link in all_links]
+    
+    return all_links
 
-# # E.g.
-# text = '''You can find here
-# [https://drive.google.com/drive/folders/1Ruot2y65dzKW5vf7FYmlpXyK1w76Eqf8?usp=drive\\_link](https://drive.google.com/drive/folders/1Ruot2y65dzKW5vf7FYmlpXyK1w76Eqf8?usp=drive_link)
-# also maybe here: [https://drive.google.com/drive/folders/1Ruot2y65dzKW5vf7FYmlpXyK1w76Eqf8?usp=drive\\_link](https://drive.google.com/drive/folders/2Ruot2y65dzKW5vf7FYmlpXyK1w76Eqf8?usp=drive_link)'''
-# print(extract_urls(text))
+# Test
+
+# text = '''
+# You can find here
+# [https://drive.google.com/drive/folders/1Ruot2y65dzKW5vf7FYmlpXyK1w76Eqf8?usp=drive\\_link](https://drive.google.com/drive/folders/first_type_again?usp=drive_link)
+# also maybe here: [https://drive.google.com/drive/folders/1Ruot2y65dzKW5vf7FYmlpXyK1w76Eqf8?usp=drive\\_link](https://drive.google.com/drive/folders/first_type?usp=drive_link)
+
+# this is the link: https://drive.google.com/drive/folders/second_type?usp=drive_link
+# '''
+# links = extract_links(text)
+# print(links)
+# output: ['https://drive.google.com/drive/folders/first_type_again?usp=drive_link', 'https://drive.google.com/drive/folders/first_type?usp=drive_link', 'https://drive.google.com/drive/folders/second_type?usp=drive_link']
+
+# other links contains direct links like
+text = "this is the link: https://drive.google.com/drive/folders/1Ruot2y65dzKW5vf7FYmlpXyK1w76Eqf8?usp=drive_link"
 
 
 def get_reddit_posts(subreddit_name, datetime_before=None, datetime_after=None, how_many=None):
@@ -91,7 +116,7 @@ def get_reddit_posts(subreddit_name, datetime_before=None, datetime_after=None, 
             # 
             submission.comments.replace_more(limit=None)
             for comment in submission.comments.list():
-                links_contained = extract_urls(comment.body)
+                links_contained = extract_links(comment.body)
                 if links_contained:
                     # only add comments with links
                     post_data['comments'].append({

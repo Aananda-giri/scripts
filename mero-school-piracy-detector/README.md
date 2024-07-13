@@ -14,7 +14,7 @@
     * functions.is_social_media_link is copied from scrapy_engine.functions (use original)
     * functions.DriveFunctions is copied from drive_crawler.drive_functions (use original)
     * merge drive_crawler.get_owner_info to drive_crawler.drive_functions
-    
+[ ] functions.is_social_media_link: 'm.youtube.com' is youtube link it returns 'others'
 
 ## Working
 * Reddit-crawler: crwal reddit posts from given subreddit lists e.g. IOENepal
