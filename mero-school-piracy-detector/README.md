@@ -6,13 +6,6 @@
 * gemini: To Check if the post is talking about mero-school videos
 * Save the links given by suspicious posts in csv file.
 
-# pdf-engine
-[ ] Crawler: crawl notes & pdfs links from reddit 'r/IOENepal'
-[ ] Crawler: scrapy to detect the link belong to pdf and get title, url
-[ ] Searching: include results from web pages and not only google drive
-[ ] Searching: Optimize mongo serch, index <unique> url field, index <searching> file_name or title
-[ ] Implement Semantic search
-[ ] How to Get Google drive api key.
 
 # Reddit Crawler
 [ ] Steps to get new drive api_key and gemini api keys
@@ -22,6 +15,8 @@
 [ ] Test if code is working for past 24 hours
 [ ] Make it async. + Mongo Db
 [ ] Tests: (Reddit, gemini) api are working
+
+
 ## Pseudocode:
 while True:
     for post in new_posts:
@@ -104,11 +99,9 @@ Rate Limits**
 ```
 
 
-# Praw Tiimeout
+# Praw Timeout
   even after sleeping for 1s after each request
   `prawcore.exceptions.TooManyRequests: received 429 HTTP response`
-
-
 
 # Unsecure
 csv_functions.py: eval is unsecure for data from unknown sources
