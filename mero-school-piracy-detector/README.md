@@ -1,3 +1,11 @@
+# piracy-Detector:
+* Detect if mero-school videos are shared reddit.
+
+## Working
+* Reddit-crawler: crwal reddit posts from given subreddit lists e.g. IOENepal
+* gemini: To Check if the post is talking about mero-school videos
+* Save the links given by suspicious posts in csv file.
+
 # pdf-engine
 [ ] Crawler: crawl notes & pdfs links from reddit 'r/IOENepal'
 [ ] Crawler: scrapy to detect the link belong to pdf and get title, url
