@@ -220,4 +220,7 @@ python count_lines.py /path/to/directory --detailed --log-level WARNING
 
 # Full example with exclusions
 python count_lines.py /path/to/directory --extensions py js html --exclude-dirs node_modules --exclude-files "*.min.*" --detailed --log-level INFO
+
+# Full example with exclusions, without --detailed
+python count_lines.py /path/to/directory --extensions py js html --exclude-dirs node_modules --exclude-files "*.min.*" --log-level INFO
 '''
