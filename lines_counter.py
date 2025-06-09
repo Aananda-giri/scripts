@@ -126,17 +126,17 @@ def count_lines_in_directory(directory, extensions=None, exclude_files=None, exc
 
 def main():
     parser = argparse.ArgumentParser(description='Count lines of code in specified file types')
-    parser.add_argument('directory', type=str, help='Directory to scan')
-    parser.add_argument('--extensions', type=str, nargs='+', default=['.py', '.html', '.md'],
-                        help='File extensions to count (default: .py .html .md)')
-    parser.add_argument('--exclude-files', type=str, nargs='+', default=[],
+    parser.add_argument('directory', type=str, nargs='?', default=os.getcwd(), help='Directory to scan')
+    parser.add_argument('--extensions', type=str, nargs='+', default=['.py', '.html', '.js'],
+                        help='File extensions to count (default: .py .html .js)')
+    parser.add_argument('--exclude-files', type=str, nargs='+', default=['yarn.lock', 'package-lock.json'],
                         help='File patterns to exclude (e.g., "test_*.py", "setup.py")')
-    parser.add_argument('--exclude-dirs', type=str, nargs='+', default=[],
+    parser.add_argument('--exclude-dirs', type=str, nargs='+', default=['node_modules', '.archive', '.venv', '.vscode', 'logs'],
                         help='Directory patterns to exclude (e.g., "venv", ".*_cache")')
-    parser.add_argument('--log-level', type=str, default='INFO',
+    parser.add_argument('--log-level', type=str, default='WARNING',
                         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help='Set the logging level (default: INFO)')
-    parser.add_argument('--detailed', action='store_true',
+    parser.add_argument('--detailed', action='store_true', default=False,
                         help='Show detailed information about each file')
     
     args = parser.parse_args()
@@ -207,20 +207,24 @@ if __name__ == "__main__":
 # --------------
 
 # Basic usage with INFO level (default)
-python lines_counter.py /path/to/directory
+python count_lines.py /path/to/directory
 
 # Use DEBUG level to see details about each file processed
-python lines_counter.py /path/to/directory --log-level DEBUG
+python count_lines.py /path/to/directory --log-level DEBUG
 
 # Show detailed information about each file with line counts
-python lines_counter.py /path/to/directory --detailed
+python count_lines.py /path/to/directory --detailed
 
 # Combine detailed output with specific log level
-python lines_counter.py /path/to/directory --detailed --log-level WARNING
+python count_lines.py /path/to/directory --detailed --log-level WARNING
 
 # Full example with exclusions
-python lines_counter.py /path/to/directory --extensions py js html --exclude-dirs node_modules --exclude-files "*.min.*" --detailed --log-level INFO
+python count_lines.py /path/to/directory --extensions py js html --exclude-dirs node_modules --exclude-files "*.min.*" --detailed --log-level INFO
 
 # Full example with exclusions, without --detailed
-python lines_counter.py /path/to/directory --extensions py js html --exclude-dirs node_modules --exclude-files "*.min.*" --log-level INFO
+python count_lines.py /path/to/directory --extensions py js html --exclude-dirs node_modules --exclude-files "*.min.*" --log-level INFO
+
+# simple way: put this file in directory you want to count lines
+python3 lines_counter.py
+
 '''
