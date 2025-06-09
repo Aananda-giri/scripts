@@ -207,20 +207,20 @@ if __name__ == "__main__":
 # --------------
 
 # Basic usage with INFO level (default)
-python count_lines.py /path/to/directory
+python lines_counter.py /path/to/directory
 
 # Use DEBUG level to see details about each file processed
-python count_lines.py /path/to/directory --log-level DEBUG
+python lines_counter.py /path/to/directory --log-level DEBUG
 
 # Show detailed information about each file with line counts
-python count_lines.py /path/to/directory --detailed
+python lines_counter.py /path/to/directory --detailed
 
 # Combine detailed output with specific log level
-python count_lines.py /path/to/directory --detailed --log-level WARNING
+python lines_counter.py /path/to/directory --detailed --log-level WARNING
 
 # Full example with exclusions
-python count_lines.py /path/to/directory --extensions py js html --exclude-dirs node_modules --exclude-files "*.min.*" --detailed --log-level INFO
+python lines_counter.py /path/to/directory --extensions py js html --exclude-dirs node_modules --exclude-files "*.min.*" --detailed --log-level INFO
 
 # Full example with exclusions, without --detailed
-python count_lines.py /path/to/directory --extensions py js html --exclude-dirs node_modules --exclude-files "*.min.*" --log-level INFO
+python lines_counter.py /path/to/directory --extensions py js html --exclude-dirs node_modules --exclude-files "*.min.*" --log-level INFO
 '''
