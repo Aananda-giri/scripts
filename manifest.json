@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Page Screenshot Scroller",
+  "version": "1.0",
+  "description": "Take screenshots while scrolling down a page and compile them into a PDF",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "downloads"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Screenshot Scroller"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
