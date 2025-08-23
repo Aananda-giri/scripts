@@ -37,9 +37,10 @@
       
       let screenshotCount = 0;
       let previousScrollTop = -1;
-      let unchangedScrollCount = 0;
+      let stuckCount = 0;
+      const maxScreenshots = 100; // Safety limit
       
-      while (true) {
+      while (screenshotCount < maxScreenshots) {
         screenshotCount++;
         const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
         
@@ -49,7 +50,7 @@
           current: screenshotCount
         });
         
-        // Take screenshot
+        // Take screenshot first
         try {
           const screenshotData = await captureVisibleTab();
           screenshots.push(screenshotData);
@@ -63,7 +64,7 @@
           return;
         }
         
-        // Check if we've reached the bottom using multiple methods
+        // Calculate page dimensions
         const windowHeight = window.innerHeight;
         const documentHeight = Math.max(
           document.body.scrollHeight,
@@ -73,38 +74,54 @@
           document.documentElement.offsetHeight
         );
         
-        // Method 1: Check if scroll position + window height >= document height
-        const isAtBottom1 = (currentScrollTop + windowHeight) >= (documentHeight - 10); // 10px tolerance
+        console.log(`Screenshot ${screenshotCount}: scrollTop=${currentScrollTop}, windowHeight=${windowHeight}, docHeight=${documentHeight}`);
         
-        // Method 2: Check if scroll position hasn't changed after scrolling
-        const scrollDidNotChange = (currentScrollTop === previousScrollTop);
-        if (scrollDidNotChange) {
-          unchangedScrollCount++;
+        // Try to scroll down BEFORE checking if we're at bottom
+        const beforeScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        window.scrollBy(0, scrollAmount);
+        
+        // Wait for scroll to complete
+        await wait(300);
+        
+        const afterScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const actualScrollDistance = afterScrollTop - beforeScrollTop;
+        
+        console.log(`Scroll attempt: before=${beforeScrollTop}, after=${afterScrollTop}, distance=${actualScrollDistance}`);
+        
+        // Check if we actually moved
+        if (actualScrollDistance < 10) { // Less than 10px movement
+          stuckCount++;
+          console.log(`Scroll stuck count: ${stuckCount}`);
         } else {
-          unchangedScrollCount = 0;
+          stuckCount = 0; // Reset if we successfully scrolled
         }
         
-        // Method 3: Try to scroll and see if position actually changes
-        const beforeScroll = window.pageYOffset || document.documentElement.scrollTop;
-        window.scrollBy(0, scrollAmount);
-        await wait(100); // Short wait for scroll to complete
-        const afterScroll = window.pageYOffset || document.documentElement.scrollTop;
-        const actuallyScrolled = afterScroll > beforeScroll;
+        // Multiple ways to detect end of page
+        const isAtBottom = (afterScrollTop + windowHeight) >= (documentHeight - 50); // 50px tolerance
+        const scrollIsStuck = stuckCount >= 3; // Failed to scroll 3 times in a row
         
-        console.log(`Screenshot ${screenshotCount}: scrollTop=${currentScrollTop}, windowHeight=${windowHeight}, docHeight=${documentHeight}, atBottom=${isAtBottom1}, scrollChanged=${actuallyScrolled}`);
-        
-        // Break if we've reached the bottom using any method
-        if (isAtBottom1 || unchangedScrollCount >= 2 || !actuallyScrolled) {
-          console.log('Reached bottom of page, stopping screenshots');
+        if (scrollIsStuck) {
+          console.log('Stopping: Scroll position stuck');
           break;
         }
         
-        // Update previous scroll position
-        previousScrollTop = afterScroll;
+        if (isAtBottom) {
+          console.log('Stopping: Reached bottom of page');
+          break;
+        }
         
-        // Wait for specified delay (minus the 100ms we already waited)
-        await wait(Math.max(delay - 100, 0));
+        // Update previous position
+        previousScrollTop = afterScrollTop;
+        
+        // Wait for specified delay (minus the 300ms we already waited)
+        await wait(Math.max(delay - 300, 100));
       }
+      
+      if (screenshotCount >= maxScreenshots) {
+        console.log('Stopping: Reached maximum screenshot limit');
+      }
+      
+      console.log(`Total screenshots taken: ${screenshots.length}`);
       
       // Generate output based on user preference
       if (outputFormat === 'pdf') {
@@ -232,7 +249,7 @@
             if (processedImages === screenshots.length) {
               const pdfBlob = pdf.output('blob');
               const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-              const filename = `screenshots-${document.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${timestamp}.pdf`;
+              const filename = `${document.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${timestamp}.pdf`;
               downloadBlob(pdfBlob, filename);
               resolve();
             }
@@ -264,7 +281,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Page Screenshots - ${document.title}</title>
+  <title>${document.title}</title>
   <style>
     body { 
       margin: 0; 
@@ -326,26 +343,11 @@
     }
   </style>
 </head>
-<body>
-  <div class="header">
-    <h1>Website Screenshots</h1>
-    <p><strong>Source:</strong> ${window.location.href}</p>
-    <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
-    <p><strong>Total Screenshots:</strong> ${screenshots.length}</p>
-  </div>
-  
-  <div class="instructions">
-    <h3>📄 Convert to PDF</h3>
-    <p>• Press <strong>Ctrl+P</strong> (or Cmd+P on Mac)</p>
-    <p>• Select "Save as PDF" as destination</p>
-    <p>• Choose "More settings" → Paper size: A4</p>
-    <p>• Set margins to "Minimum" for best results</p>
-  </div>`;
+<body>`;
 
     for (let i = 0; i < screenshots.length; i++) {
       htmlContent += `
   <div class="screenshot-container">
-    <div class="screenshot-info">Screenshot ${i + 1} of ${screenshots.length}</div>
     <img src="${screenshots[i]}" alt="Screenshot ${i + 1}" loading="lazy" />
   </div>`;
     }
@@ -357,7 +359,7 @@
     // Create and download HTML file
     const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
     const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-    const filename = `screenshots-${document.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${timestamp}.html`;
+    const filename = `${document.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${timestamp}.html`;
     
     downloadBlob(blob, filename);
     

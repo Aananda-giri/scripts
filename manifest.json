@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Page Screenshot Scroller",
+  "name": "Web2PDF",
   "version": "1.0",
   "description": "Take screenshots while scrolling down a page and compile them into a PDF",
   "permissions": [
