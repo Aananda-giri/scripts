@@ -12,5 +12,19 @@ services:
       timeout: 5s
       retries: 5
 
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    volumes:
+      - ./LF Jobs - LF Jobs.csv:/app/LF Jobs - LF Jobs.csv:ro
+
 volumes:
   qdrant_data:
