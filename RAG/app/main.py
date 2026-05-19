@@ -1,0 +1,32 @@
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from fastapi import FastAPI
+
+from app.config import Settings
+from app.core.preprocessing import load_and_chunk
+from app.pipeline.query import QueryPipeline
+from app.api.router import router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    settings = Settings()
+    pipeline = QueryPipeline(settings)
+
+    csv_path = Path(__file__).resolve().parent.parent / "LF Jobs - LF Jobs.csv"
+    if csv_path.exists():
+        chunks = load_and_chunk(
+            str(csv_path),
+            max_size=settings.chunk_max_size,
+            overlap=settings.chunk_overlap,
+            min_size=settings.chunk_min_size,
+        )
+        pipeline.retriever.build_bm25_index(chunks)
+
+    app.state.pipeline = pipeline
+    yield
+
+
+app = FastAPI(title="Job RAG API", version="1.0.0", lifespan=lifespan)
+app.include_router(router)
