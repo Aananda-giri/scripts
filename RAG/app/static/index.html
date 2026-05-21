@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JobRAG — AI Job Search</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #faf9f7;
+    --surface: #ffffff;
+    --border: #e7e5e2;
+    --text: #1b1b1b;
+    --text-muted: #6b6560;
+    --accent: #4f46e5;
+    --accent-hover: #4338ca;
+    --accent-subtle: #eef2ff;
+    --gold: #d4a017;
+    --gold-subtle: #fef9e8;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,.06), 0 2px 4px rgba(0,0,0,.04);
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .logo {
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: -.02em;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo-icon {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 14px;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .status-dot.ok { background: #22c55e; }
+  .status-dot.degraded { background: #f59e0b; }
+
+  /* ── Layout ── */
+  main {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── Search ── */
+  .search-section {
+    margin-bottom: 32px;
+  }
+  .search-wrapper {
+    display: flex;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .search-wrapper:focus-within {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-md), 0 0 0 3px var(--accent-subtle);
+  }
+  .search-input {
+    flex: 1;
+    border: none;
+    padding: 16px 20px;
+    font-size: 16px;
+    font-family: var(--font);
+    background: transparent;
+    color: var(--text);
+    outline: none;
+  }
+  .search-input::placeholder { color: var(--text-muted); }
+  .search-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 0 28px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: background .15s;
+    white-space: nowrap;
+  }
+  .search-btn:hover { background: var(--accent-hover); }
+  .search-btn:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+  }
+
+  /* ── Filters ── */
+  .filters-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-muted);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: var(--font);
+    padding: 10px 0;
+    margin-top: 8px;
+    transition: color .15s;
+  }
+  .filters-toggle:hover { color: var(--text); }
+  .filters-toggle svg { transition: transform .2s; }
+  .filters-toggle.open svg { transform: rotate(180deg); }
+
+  .filters-panel {
+    display: none;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-top: 8px;
+    box-shadow: var(--shadow);
+  }
+  .filters-panel.visible { display: grid; }
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .filter-group label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--text-muted);
+  }
+  .filter-group input {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    font-size: 14px;
+    font-family: var(--font);
+    outline: none;
+    transition: border-color .15s;
+  }
+  .filter-group input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-subtle);
+  }
+  .filter-group .hint {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* ── Answer Card ── */
+  .answer-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow);
+    animation: fadeIn .3s ease;
+  }
+  .answer-card .label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .answer-text {
+    font-size: 15px;
+    line-height: 1.8;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+  .answer-text p { margin-bottom: 12px; }
+  .answer-text strong { color: var(--text); }
+  .answer-text code {
+    background: var(--accent-subtle);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: .9em;
+  }
+
+  /* ── Results ── */
+  .results-header {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 16px;
+  }
+  .job-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+    transition: box-shadow .15s, border-color .15s;
+    animation: fadeIn .3s ease;
+  }
+  .job-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: #d4d1cc;
+  }
+  .job-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .job-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -.01em;
+  }
+  .job-company {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .relevance-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--mono);
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .relevance-badge.high { background: #ecfdf5; color: #065f46; }
+  .relevance-badge.med  { background: var(--gold-subtle); color: #92400e; }
+  .relevance-badge.low  { background: #f9fafb; color: var(--text-muted); }
+  .job-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0;
+  }
+  .meta-tag {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: #f3f4f6;
+    color: #4b5563;
+    font-weight: 500;
+  }
+  .meta-tag.location { background: #eff6ff; color: #1e40af; }
+  .meta-tag.level   { background: #fef3c7; color: #92400e; }
+  .source-text {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    display: none;
+    white-space: pre-wrap;
+  }
+  .source-text.open { display: block; }
+  .source-toggle {
+    font-size: 12px;
+    color: var(--accent);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: var(--font);
+    font-weight: 500;
+    margin-top: 10px;
+    padding: 0;
+    transition: color .15s;
+  }
+  .source-toggle:hover { color: var(--accent-hover); }
+
+  /* ── Timing ── */
+  .timing {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    margin-bottom: 24px;
+  }
+  .timing span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* ── States ── */
+  .empty-state {
+    text-align: center;
+    padding: 80px 24px;
+    color: var(--text-muted);
+  }
+  .empty-state .icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: .6;
+  }
+  .empty-state h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .empty-state p { font-size: 14px; max-width: 400px; margin: 0 auto; }
+
+  .error-banner {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    color: #991b1b;
+    font-size: 14px;
+    margin-bottom: 24px;
+    animation: fadeIn .3s ease;
+  }
+
+  .loading-spinner {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+    display: inline-block;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    main { padding: 24px 16px 60px; }
+    .filters-panel { grid-template-columns: 1fr; }
+    .search-btn { padding: 0 20px; font-size: 14px; }
+    .search-input { padding: 14px 16px; font-size: 15px; }
+    .job-card-header { flex-direction: column; }
+    .answer-card, .job-card { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">&#9861;</div>
+    JobRAG
+  </div>
+  <div id="status" style="font-size:13px;color:var(--text-muted);display:flex;align-items:center;gap:6px">
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-text">—</span>
+  </div>
+</header>
+
+<main>
+  <!-- Search -->
+  <section class="search-section">
+    <div class="search-wrapper">
+      <input
+        class="search-input"
+        id="query"
+        type="text"
+        placeholder="Try &quot;senior python developer in New York&quot;..."
+        autofocus
+        autocomplete="off"
+      >
+      <button class="search-btn" id="search-btn" onclick="doSearch()">Search</button>
+    </div>
+
+    <button class="filters-toggle" id="filters-toggle" onclick="toggleFilters()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      Filters
+    </button>
+
+    <div class="filters-panel" id="filters-panel">
+      <div class="filter-group">
+        <label>Category</label>
+        <input id="filter-category" placeholder="e.g. Engineering, Design" onkeydown="if(event.key==='Enter')doSearch()">
+        <span class="hint">Comma-separated</span>
+      </div>
+      <div class="filter-group">
+        <label>Level</label>
+        <input id="filter-level" placeholder="e.g. Senior, Entry" onkeydown="if(event.key==='Enter')doSearch()">
+        <span class="hint">Comma-separated</span>
+      </div>
+      <div class="filter-group">
+        <label>Company</label>
+        <input id="filter-company" placeholder="e.g. Google, Stripe" onkeydown="if(event.key==='Enter')doSearch()">
+        <span class="hint">Comma-separated</span>
+      </div>
+      <div class="filter-group">
+        <label>Location</label>
+        <input id="filter-location" placeholder="e.g. New York, Remote" onkeydown="if(event.key==='Enter')doSearch()">
+        <span class="hint">Comma-separated</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Results container -->
+  <div id="results-container"></div>
+</main>
+
+<script>
+const API = '/api';
+
+function $(id) { return document.getElementById(id); }
+
+function parseCSV(val) {
+  return val ? val.split(',').map(s => s.trim()).filter(Boolean) : null;
+}
+
+async function doSearch() {
+  const query = $('query').value.trim();
+  if (!query) return;
+
+  const btn = $('search-btn');
+  btn.disabled = true;
+  btn.textContent = 'Searching…';
+
+  const container = $('results-container');
+  container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div></div>';
+
+  const filters = {
+    job_category: parseCSV($('filter-category').value),
+    job_level: parseCSV($('filter-level').value),
+    company_name: parseCSV($('filter-company').value),
+    job_location: parseCSV($('filter-location').value),
+  };
+  const hasFilters = Object.values(filters).some(v => v !== null);
+
+  try {
+    const res = await fetch(`${API}/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query,
+        top_k: 10,
+        include_sources: true,
+        filters: hasFilters ? filters : null,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Request failed' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    renderResults(data);
+  } catch (e) {
+    container.innerHTML = `<div class="error-banner">${escapeHtml(e.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Search';
+  }
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function renderResults(data) {
+  const container = $('results-container');
+  const { query, answer, results, processing_time_ms, retrieval_details } = data;
+
+  let html = '';
+
+  // Timing
+  html += '<div class="timing">';
+  html += `<span>&#9202; ${processing_time_ms}ms total</span>`;
+  html += `<span>&#9900; ${retrieval_details.retrieval_time_ms}ms retrieval</span>`;
+  html += `<span>&#9998; ${retrieval_details.generation_time_ms}ms generation</span>`;
+  html += '</div>';
+
+  // Answer
+  html += '<div class="answer-card">';
+  html += '<div class="label">AI-Generated Answer</div>';
+  html += `<div class="answer-text">${escapeHtml(answer)}</div>`;
+  html += '</div>';
+
+  // Results
+  if (results.length) {
+    html += `<div class="results-header">Top ${results.length} matching jobs</div>`;
+    results.forEach((r, i) => {
+      const score = r.relevance_score;
+      const tier = score > 0.7 ? 'high' : score > 0.4 ? 'med' : 'low';
+      const pct = Math.round(score * 100);
+      html += `
+        <div class="job-card" style="animation-delay:${i * 0.05}s">
+          <div class="job-card-header">
+            <div>
+              <div class="job-title">${escapeHtml(r.job_title)}</div>
+              <div class="job-company">${escapeHtml(r.company)}</div>
+            </div>
+            <div class="relevance-badge ${tier}">${pct}% match</div>
+          </div>
+          <div class="job-meta">
+            ${r.job_category ? `<span class="meta-tag">${escapeHtml(r.job_category)}</span>` : ''}
+            ${r.location ? `<span class="meta-tag location">${escapeHtml(r.location)}</span>` : ''}
+            ${r.job_level ? `<span class="meta-tag level">${escapeHtml(r.job_level)}</span>` : ''}
+            ${r.section_type ? `<span class="meta-tag">${escapeHtml(r.section_type)}</span>` : ''}
+            <span class="meta-tag" style="background:#f1f5f9;color:#64748b">${escapeHtml(r.job_id)}</span>
+          </div>
+          ${r.source_text ? `
+            <button class="source-toggle" onclick="this.nextElementSibling.classList.toggle('open');this.textContent=this.nextElementSibling.classList.contains('open')?'Hide excerpt':'Show excerpt'">Show excerpt</button>
+            <div class="source-text">${escapeHtml(r.source_text)}</div>
+          ` : ''}
+        </div>`;
+    });
+  }
+
+  container.innerHTML = html;
+}
+
+function toggleFilters() {
+  const panel = $('filters-panel');
+  const btn = $('filters-toggle');
+  panel.classList.toggle('visible');
+  btn.classList.toggle('open');
+}
+
+// Health check on load
+(async function checkHealth() {
+  try {
+    const res = await fetch(`${API}/health`);
+    const data = await res.json();
+    const ok = data.status === 'healthy';
+    $('status-dot').className = 'status-dot ' + (ok ? 'ok' : 'degraded');
+    $('status-text').textContent = ok ? 'System ready' : 'Degraded';
+  } catch {
+    $('status-dot').className = 'status-dot degraded';
+    $('status-text').textContent = 'Offline';
+  }
+})();
+
+// Enter key triggers search
+$('query').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch();
+});
+
+// Initial state
+$('results-container').innerHTML = `
+  <div class="empty-state">
+    <div class="icon">&#128269;</div>
+    <h3>Find your next role</h3>
+    <p>Search across 1,000 job listings using natural language. Try describing the role, skills, or location you're looking for.</p>
+  </div>`;
+</script>
+
+</body>
+</html>
