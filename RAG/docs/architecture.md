@@ -2,7 +2,7 @@
 
 ## Overview
 
-The RAG pipeline retrieves relevant job listings for natural language queries and generates grounded answers via Gemini. It uses a three-stage retrieval strategy: dense vector search (semantic) + sparse keyword search (exact match) fused via Reciprocal Rank Fusion, then re-ranked by a cross-encoder for final precision.
+The RAG pipeline retrieves relevant job listings for natural language queries and generates grounded answers via an OpenAI-compatible LLM (DeepSeek by default). It uses a three-stage retrieval strategy: dense vector search (semantic) + sparse keyword search (exact match) fused via Reciprocal Rank Fusion, then re-ranked by a cross-encoder for final precision.
 
 ## System Diagram
 
@@ -17,7 +17,7 @@ The RAG pipeline retrieves relevant job listings for natural language queries an
             ▼            ▼            ▼
       ┌──────────┐ ┌──────────┐ ┌───────────┐
       │ Embedder │ │Retriever │ │  LLM      │
-      │ (Gemini) │ │(Hybrid)  │ │ (Gemini)  │
+      │ (Ollama) │ │(Hybrid)  │ │(DeepSeek) │
       └────┬─────┘ └────┬─────┘ └───────────┘
            │            │
            ▼            ▼
@@ -39,7 +39,7 @@ CSV (1000 rows)
   ├─ extract_metadata()       9 standardized fields, impute missing locations
   ├─ chunk_description()      Section detection → split → 1000-char chunks
   │
-  ├─ GeminiEmbedder.embed_batch()   Batch of 50, RETRIEVAL_DOCUMENT task_type
+  ├─ Embedder.embed_batch()         Batch of 50 via Ollama (nomic-embed-text)
   │
   └─ QdrantStore.upsert_chunks()    Points with payload + payload indexes
 ```
@@ -49,7 +49,7 @@ CSV (1000 rows)
 ```
 User query (natural language)
   │
-  ├─ GeminiEmbedder.embed_query()         RETRIEVAL_QUERY task_type
+  ├─ Embedder.embed_query()               Single text embedding
   │
   ├─ QdrantStore.search()                 Cosine top-20 + optional payload filter
   ├─ HybridRetriever._bm25_search()       BM25 tokenized top-20
@@ -58,26 +58,27 @@ User query (natural language)
   │
   ├─ CrossEncoderReranker.rerank()        MiniLM scores (query, chunk) → top-5
   │
-  └─ GeminiLLM.generate_answer()          System prompt + context → response
+  └─ LLM.generate_answer()                System prompt + context → response
 ```
 
 ## Engineering Decisions
 
-### 1. Embedding Model: `text-embedding-004`
+### 1. Embedding Model: `nomic-embed-text-v1.5` (via Ollama)
 
-Gemini's latest embedding model. 768-dimensional vectors, supports `task_type`
-parameter for query vs. document differentiation. The `RETRIEVAL_DOCUMENT` and
-`RETRIEVAL_QUERY` task types optimize embeddings for their respective roles in
-the retrieval pipeline, improving cosine similarity alignment.
+Runs locally through Ollama's OpenAI-compatible API. 768-dimensional vectors.
+No API costs or rate limits — embeddings are generated entirely on your machine.
+Any OpenAI-compatible embedding API can be substituted via `EMBEDDING_MODEL`
+and `OPENAI_COMPATIBLE_EMBEDDING_BASE_URL`.
 
 **Alternatives considered:** Cohere Embed v3 (requires separate API key),
+OpenAI text-embedding-3-small (1536-dim, paid API),
 Hugging Face all-MiniLM-L6-v2 (384-dim, lower quality, runs locally).
 
-### 2. LLM Model: `gemini-2.0-flash`
+### 2. LLM Model: `deepseek-chat`
 
-Fast, cheap, sufficient context window (1M tokens). Low temperature (0.3) keeps
-responses factual and grounded. Swappable to `gemini-2.5-pro` via `.env` for
-higher-quality answers at increased latency/cost.
+DeepSeek's flagship chat model via their OpenAI-compatible API. Low temperature
+(0.3) keeps responses factual and grounded. Any OpenAI-compatible model can be
+substituted via `LLM_MODEL` and `OPENAI_COMPATIBLE_BASE_URL` env vars.
 
 ### 3. Vector Store: Qdrant
 
@@ -165,11 +166,11 @@ deterministic and evidence-based, not creative.
 |---|---|---|
 | Config | `app/config.py` | Pydantic BaseSettings from `.env` |
 | Preprocessing | `app/core/preprocessing.py` | CSV load, HTML clean, section-aware chunking |
-| Embeddings | `app/core/embeddings.py` | Gemini `text-embedding-004` wrapper with retry |
+| Embeddings | `app/core/embeddings.py` | OpenAI-compatible embeddings wrapper (Ollama/nomic by default) |
 | Vector Store | `app/core/vector_store.py` | Qdrant create/search/upsert with payload indexes |
 | Retriever | `app/core/retriever.py` | BM25 index + hybrid search + RRF fusion |
 | Reranker | `app/core/reranker.py` | Cross-encoder MiniLM reranker |
-| LLM | `app/core/llm.py` | Gemini prompt construction + generation |
+| LLM | `app/core/llm.py` | OpenAI-compatible LLM (DeepSeek by default) |
 | Ingestion | `app/pipeline/ingest.py` | CSV → Qdrant end-to-end orchestrator |
 | Query | `app/pipeline/query.py` | Query → answer end-to-end orchestrator |
 | API | `app/api/router.py`, `app/api/schemas.py` | FastAPI routes + Pydantic validation |

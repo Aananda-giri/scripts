@@ -1,5 +1,4 @@
-from google import genai
-from google.genai import types
+from openai import OpenAI
 
 SYSTEM_INSTRUCTION = """You are a precise job search assistant. Your role is to match job \
 seekers with relevant positions based on their queries, using retrieved job \
@@ -22,9 +21,10 @@ Then, for each relevant job (max 3), provide:
 If no jobs match, say so and suggest alternative search terms."""
 
 
-class GeminiLLM:
-    def __init__(self, api_key: str, model: str = "gemini-2.0-flash"):
-        self.client = genai.Client(api_key=api_key)
+class LLM:
+    def __init__(self, api_key: str, model: str = "deepseek-chat",
+                 base_url: str = "https://api.deepseek.com"):
+        self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.model = model
 
     def generate_answer(self, query: str, chunks: list[dict]) -> str:
@@ -34,16 +34,16 @@ class GeminiLLM:
         context = self._format_context(chunks)
         prompt = self._build_prompt(query, context)
 
-        response = self.client.models.generate_content(
+        response = self.client.chat.completions.create(
             model=self.model,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_INSTRUCTION,
-                temperature=0.3,
-                max_output_tokens=1024,
-            ),
+            messages=[
+                {"role": "system", "content": SYSTEM_INSTRUCTION},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.3,
+            max_tokens=1024,
         )
-        return response.text
+        return response.choices[0].message.content
 
     @staticmethod
     def _format_context(chunks: list[dict]) -> str:

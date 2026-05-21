@@ -1,6 +1,6 @@
 from app.config import Settings
 from app.core.preprocessing import load_and_chunk
-from app.core.embeddings import GeminiEmbedder
+from app.core.embeddings import Embedder
 from app.core.vector_store import QdrantStore
 
 
@@ -14,8 +14,9 @@ def run_ingestion(csv_path: str, settings: Settings) -> int:
     )
     print(f"Total chunks: {len(chunks)}")
 
-    embedder = GeminiEmbedder(
-        api_key=settings.gemini_api_key,
+    embedder = Embedder(
+        api_key=settings.openai_compatible_api_key,
+        base_url=settings.openai_compatible_embedding_base_url,
         model=settings.embedding_model,
     )
     print(f"Generating embeddings (batch_size={settings.embedding_batch_size})...")
@@ -33,7 +34,7 @@ def run_ingestion(csv_path: str, settings: Settings) -> int:
         port=settings.qdrant_port,
         collection_name=settings.collection_name,
     )
-    store.create_collection(vector_size=768, recreate=True)
+    store.create_collection(vector_size=settings.embedding_dim, recreate=True)
     count = store.upsert_chunks(chunks, vectors)
     print(f"Upserted {count} points to Qdrant collection '{settings.collection_name}'")
 

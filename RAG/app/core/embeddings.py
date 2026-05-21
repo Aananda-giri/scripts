@@ -1,23 +1,23 @@
 import time
 
-from google import genai
+from openai import OpenAI
 
 
-class GeminiEmbedder:
-    def __init__(self, api_key: str, model: str = "text-embedding-004"):
-        self.client = genai.Client(api_key=api_key)
+class Embedder:
+    def __init__(self, api_key: str, model: str = "nomic-embed-text",
+                 base_url: str = "http://localhost:11434/v1"):
+        self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.model = model
 
-    def embed(self, text: str, task_type: str = "RETRIEVAL_DOCUMENT") -> list[float]:
-        result = self.client.models.embed_content(
+    def embed(self, text: str) -> list[float]:
+        result = self.client.embeddings.create(
             model=self.model,
-            contents=text,
-            config={"task_type": task_type},
+            input=text,
         )
-        return result.embeddings[0].values
+        return result.data[0].embedding
 
     def embed_query(self, query: str) -> list[float]:
-        return self.embed(query, task_type="RETRIEVAL_QUERY")
+        return self.embed(query)
 
     def embed_batch(self, texts: list[str], batch_size: int = 50,
                     retry_max: int = 3, retry_delay: float = 2.0) -> list[list[float]]:
@@ -26,9 +26,12 @@ class GeminiEmbedder:
             batch = texts[i:i + batch_size]
             for attempt in range(retry_max):
                 try:
-                    for text in batch:
-                        emb = self.embed(text, task_type="RETRIEVAL_DOCUMENT")
-                        all_embeddings.append(emb)
+                    result = self.client.embeddings.create(
+                        model=self.model,
+                        input=batch,
+                    )
+                    for item in result.data:
+                        all_embeddings.append(item.embedding)
                     break
                 except Exception as e:
                     if attempt < retry_max - 1:

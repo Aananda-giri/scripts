@@ -5,12 +5,12 @@ from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from rank_bm25 import BM25Okapi
 
-from app.core.embeddings import GeminiEmbedder
+from app.core.embeddings import Embedder
 from app.core.vector_store import QdrantStore
 
 
 class HybridRetriever:
-    def __init__(self, vector_store: QdrantStore, embedder: GeminiEmbedder):
+    def __init__(self, vector_store: QdrantStore, embedder: Embedder):
         self.vector_store = vector_store
         self.embedder = embedder
         self.bm25: BM25Okapi | None = None

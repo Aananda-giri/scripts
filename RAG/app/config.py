@@ -4,9 +4,12 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
-    gemini_api_key: str
-    embedding_model: str = "text-embedding-004"
-    llm_model: str = "gemini-2.0-flash"
+    # OpenAI-compatible API settings (DeepSeek by default for LLM)
+    openai_compatible_api_key: str
+    openai_compatible_base_url: str = "https://api.deepseek.com"  # DeepSeek
+    openai_compatible_embedding_base_url: str = "http://localhost:11434/v1"  # Ollama
+    embedding_model: str = "nomic-embed-text"  # nomic-embed-text-v1.5 in Ollama
+    llm_model: str = "deepseek-chat"
 
     qdrant_host: str = "localhost"
     qdrant_port: int = 6333
@@ -23,6 +26,7 @@ class Settings(BaseSettings):
     reranker_top_n: int = 5
     rrf_constant_k: int = 60
 
+    embedding_dim: int = 768
     embedding_batch_size: int = 50
     embedding_retry_max: int = 3
     embedding_retry_delay: float = 2.0

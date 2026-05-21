@@ -1,18 +1,19 @@
 import time
 
 from app.config import Settings
-from app.core.embeddings import GeminiEmbedder
+from app.core.embeddings import Embedder
 from app.core.vector_store import QdrantStore
 from app.core.retriever import HybridRetriever
 from app.core.reranker import CrossEncoderReranker
-from app.core.llm import GeminiLLM
+from app.core.llm import LLM
 
 
 class QueryPipeline:
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.embedder = GeminiEmbedder(
-            api_key=settings.gemini_api_key,
+        self.embedder = Embedder(
+            api_key=settings.openai_compatible_api_key,
+            base_url=settings.openai_compatible_embedding_base_url,
             model=settings.embedding_model,
         )
         self.vector_store = QdrantStore(
@@ -22,8 +23,9 @@ class QueryPipeline:
         )
         self.retriever = HybridRetriever(self.vector_store, self.embedder)
         self.reranker = CrossEncoderReranker()
-        self.llm = GeminiLLM(
-            api_key=settings.gemini_api_key,
+        self.llm = LLM(
+            api_key=settings.openai_compatible_api_key,
+            base_url=settings.openai_compatible_base_url,
             model=settings.llm_model,
         )
 
