@@ -93,15 +93,15 @@ class QdrantStore:
             if must_conditions:
                 query_filter = models.Filter(must=must_conditions)
 
-        results = self.client.search(
+        results = self.client.query_points(
             collection_name=self.collection_name,
-            query_vector=query_vector,
+            query=query_vector,
             limit=top_k,
             query_filter=query_filter,
             with_payload=True,
             with_vectors=False,
         )
-        return results
+        return results.points
 
     def collection_info(self) -> dict:
         info = self.client.get_collection(self.collection_name)
