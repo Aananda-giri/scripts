@@ -13,7 +13,10 @@ from app.api.router import router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = Settings()
+    print(f"Using device: {settings.device}")
     pipeline = QueryPipeline(settings)
+    print(f"Embedder device: {pipeline.embedder.device}")
+    print(f"Reranker device: {pipeline.reranker.device}")
 
     csv_path = Path(__file__).resolve().parent.parent / "LF Jobs - LF Jobs.csv"
     if csv_path.exists():

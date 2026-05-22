@@ -36,7 +36,18 @@ class RetrievalMetadata(BaseModel):
 
 class QueryResponse(BaseModel):
     query: str
-    answer: str
+    search_query: str = ""
+    extracted_filters: dict = {}
+    answer: str = ""
+    results: list[JobResult]
+    processing_time_ms: int
+    retrieval_details: RetrievalMetadata
+
+
+class SearchResponse(BaseModel):
+    query: str
+    search_query: str = ""
+    extracted_filters: dict = {}
     results: list[JobResult]
     processing_time_ms: int
     retrieval_details: RetrievalMetadata

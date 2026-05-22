@@ -14,13 +14,9 @@ def run_ingestion(csv_path: str, settings: Settings) -> int:
     )
     print(f"Total chunks: {len(chunks)}")
 
-    embedder = Embedder(
-        api_key=settings.openai_compatible_api_key,
-        base_url=settings.openai_compatible_embedding_base_url,
-        model=settings.embedding_model,
-    )
-    print(f"Generating embeddings (batch_size={settings.embedding_batch_size})...")
-    texts = [c["text"] for c in chunks]
+    embedder = Embedder(model_name=settings.embedding_model, device=settings.device)
+    print(f"Generating embeddings on {embedder.device} (batch_size={settings.embedding_batch_size})...")
+    texts = [c["embedding_text"] for c in chunks]
     vectors = embedder.embed_batch(
         texts,
         batch_size=settings.embedding_batch_size,

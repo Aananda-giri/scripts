@@ -12,7 +12,7 @@ User Query
     ▼
 ┌──────────────────────────────────────────────────┐
 │  FastAPI (POST /api/query)                       │
-│    ├─ Query embedding   (nomic-embed-text-v1.5 via Ollama)
+│    ├─ Query embedding   (nomic-embed-text-v1.5 via sentence-transformers)
 │    ├─ Vector search     (Qdrant)                  │
 │    ├─ Keyword search    (BM25)                    │
 │    ├─ RRF fusion        (k=60)                    │
@@ -44,8 +44,8 @@ a coherent unit of information. Chunks are 1,000 chars max with 200-char overlap
 ### Data Flow (Ingestion)
 
 ```
-CSV → HTML clean → Section detection → Chunk → Embed (Ollama / nomic) → Qdrant upsert
-                                                    ↘ BM25 index (in-memory)
+CSV → HTML clean → Section detection → Chunk → Embed (nomic-embed-text-v1.5) → Qdrant upsert
+                                                       ↘ BM25 index (in-memory)
 ```
 
 ---
@@ -56,7 +56,6 @@ CSV → HTML clean → Section detection → Chunk → Embed (Ollama / nomic) �
 
 - Python 3.12+
 - Docker (for Qdrant)
-- Ollama running locally ([install](https://ollama.com)) with `nomic-embed-text` pulled
 - A DeepSeek API key ([get one](https://platform.deepseek.com/api_keys)) — or any OpenAI-compatible provider
 
 ### Installation
@@ -179,7 +178,7 @@ Returns Qdrant connection status, collection point count, and active LLM model.
 ## Assumptions
 
 1. **Qdrant runs locally via Docker.** The app connects to `localhost:6333` by default.
-2. **Ollama is running locally with the nomic-embed-text model pulled.** Embeddings run entirely on your machine with no API cost.
+2. **The embedding model is loaded in-process via sentence-transformers.** Embeddings run entirely on your machine with no API cost.
 3. **The CSV is well-formed.** HTML in job descriptions is stripped with BeautifulSoup. Missing locations (9 rows) are imputed as "Location Not Specified".
 4. **BM25 index is in-memory.** At ~6,000 chunks, memory usage is under 500MB. Not suitable for millions of documents without redesign.
 5. **Cross-encoder model is downloaded at startup.** First run downloads ~80MB from Hugging Face.

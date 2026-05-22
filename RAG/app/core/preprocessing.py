@@ -53,7 +53,9 @@ def extract_metadata(row: dict) -> dict:
     location = row.get("Job Location", "").strip()
     if not location:
         location = "Location Not Specified"
-    tags = row.get("Tags", "").strip()
+    raw_tags = row.get("Tags", "").strip()
+    tags = [t.strip() for t in raw_tags.split(",") if t.strip()] if raw_tags else []
+    pub_date = row.get("Publication Date", "").strip()
     return {
         "job_id": row["ID"].strip(),
         "job_title": row["Job Title"].strip(),
@@ -61,9 +63,22 @@ def extract_metadata(row: dict) -> dict:
         "job_category": row["Job Category"].strip(),
         "job_level": row.get("Job Level", "").strip(),
         "job_location": location,
-        "publication_date": row.get("Publication Date", "").strip(),
+        "publication_date": pub_date,
         "tags": tags,
     }
+
+
+def build_embedding_text(metadata: dict, text: str) -> str:
+    return (
+        f"Job Title: {metadata['job_title']}\n"
+        f"Company: {metadata['company_name']}\n"
+        f"Category: {metadata['job_category']}\n"
+        f"Level: {metadata['job_level']}\n"
+        f"Location: {metadata['job_location']}\n"
+        f"\n"
+        f"Description:\n"
+        f"{text}"
+    )
 
 
 def _split_by_headings(text: str) -> list[tuple[str, str]]:
@@ -138,6 +153,7 @@ def chunk_description(text: str, metadata: dict, max_size: int = 1000,
                 "section_type": section_type,
                 "chunk_index": chunk_index,
                 "text": text_chunk,
+                "embedding_text": build_embedding_text(metadata, text_chunk),
             }
             all_chunks.append(chunk)
             chunk_index += 1

@@ -7,9 +7,9 @@ The RAG pipeline retrieves relevant job listings for natural language queries an
 ## System Diagram
 
 ```
-┌──────────┐     ┌─────────────────────────────────────────────┐
+┌───────────┐     ┌─────────────────────────────────────────────┐
 │  Client   │────▶│  FastAPI (uvicorn)                          │
-└──────────┘     │  POST /api/query                            │
+└───────────┘     │  POST /api/query                            │
                   │  GET  /api/health                           │
                   └──────┬──────────────────────────────────────┘
                          │
@@ -17,7 +17,7 @@ The RAG pipeline retrieves relevant job listings for natural language queries an
             ▼            ▼            ▼
       ┌──────────┐ ┌──────────┐ ┌───────────┐
       │ Embedder │ │Retriever │ │  LLM      │
-      │ (Ollama) │ │(Hybrid)  │ │(DeepSeek) │
+      │(nomic)   │ │(Hybrid)  │ │(DeepSeek) │
       └────┬─────┘ └────┬─────┘ └───────────┘
            │            │
            ▼            ▼
@@ -39,7 +39,7 @@ CSV (1000 rows)
   ├─ extract_metadata()       9 standardized fields, impute missing locations
   ├─ chunk_description()      Section detection → split → 1000-char chunks
   │
-  ├─ Embedder.embed_batch()         Batch of 50 via Ollama (nomic-embed-text)
+  ├─ Embedder.embed_batch()         Batch of 50 via sentence-transformers (nomic-embed-text-v1.5)
   │
   └─ QdrantStore.upsert_chunks()    Points with payload + payload indexes
 ```
@@ -63,12 +63,11 @@ User query (natural language)
 
 ## Engineering Decisions
 
-### 1. Embedding Model: `nomic-embed-text-v1.5` (via Ollama)
+### 1. Embedding Model: `nomic-embed-text-v1.5` (via sentence-transformers)
 
-Runs locally through Ollama's OpenAI-compatible API. 768-dimensional vectors.
+Loaded in-process via `sentence-transformers`. 768-dimensional vectors.
 No API costs or rate limits — embeddings are generated entirely on your machine.
-Any OpenAI-compatible embedding API can be substituted via `EMBEDDING_MODEL`
-and `OPENAI_COMPATIBLE_EMBEDDING_BASE_URL`.
+Any Hugging Face embedding model can be substituted via `EMBEDDING_MODEL`.
 
 **Alternatives considered:** Cohere Embed v3 (requires separate API key),
 OpenAI text-embedding-3-small (1536-dim, paid API),
@@ -166,7 +165,7 @@ deterministic and evidence-based, not creative.
 |---|---|---|
 | Config | `app/config.py` | Pydantic BaseSettings from `.env` |
 | Preprocessing | `app/core/preprocessing.py` | CSV load, HTML clean, section-aware chunking |
-| Embeddings | `app/core/embeddings.py` | OpenAI-compatible embeddings wrapper (Ollama/nomic by default) |
+| Embeddings | `app/core/embeddings.py` | sentence-transformers wrapper (nomic-embed-text-v1.5) |
 | Vector Store | `app/core/vector_store.py` | Qdrant create/search/upsert with payload indexes |
 | Retriever | `app/core/retriever.py` | BM25 index + hybrid search + RRF fusion |
 | Reranker | `app/core/reranker.py` | Cross-encoder MiniLM reranker |

@@ -45,6 +45,28 @@ class LLM:
         )
         return response.choices[0].message.content
 
+    def generate_answer_stream(self, query: str, chunks: list[dict]):
+        if not chunks:
+            yield "No matching job descriptions found. Try broadening your search terms."
+            return
+
+        context = self._format_context(chunks)
+        prompt = self._build_prompt(query, context)
+
+        stream = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": SYSTEM_INSTRUCTION},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.3,
+            max_tokens=1024,
+            stream=True,
+        )
+        for chunk in stream:
+            if chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+
     @staticmethod
     def _format_context(chunks: list[dict]) -> str:
         parts = []

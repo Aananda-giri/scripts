@@ -6,7 +6,6 @@ Get the RAG pipeline running in under 5 minutes.
 
 - Python 3.12+
 - Docker
-- Ollama with `nomic-embed-text` pulled: `ollama pull nomic-embed-text`
 - A DeepSeek API key (or any OpenAI-compatible provider key)
 
 ## 1. Start Qdrant
@@ -52,7 +51,7 @@ python scripts/ingest.py "LF Jobs - LF Jobs.csv"
 This will:
 1. Load 1,000 job listings from CSV
 2. Clean HTML and split into semantic chunks (~6,000 total)
-3. Generate embeddings locally via Ollama (nomic-embed-text-v1.5)
+3. Generate embeddings locally via sentence-transformers (nomic-embed-text-v1.5)
 4. Upsert everything into Qdrant
 
 Expected output:
@@ -114,7 +113,6 @@ OPENAI_COMPATIBLE_API_KEY=your-key docker compose up --build
 | Problem | Fix |
 |---|---|
 | `Connection refused` on :6333 | Qdrant container not running: `docker compose up -d qdrant` |
-| `Connection refused` on :11434 | Ollama not running. Start it with `ollama serve` or `docker compose up -d ollama`. |
 | Empty results | Data wasn't ingested. Run `python scripts/ingest.py` first. |
 | `ModuleNotFoundError` | Virtual env not activated or deps not installed. |
 | Cross-encoder download hangs | First run downloads ~80MB from Hugging Face. Needs internet. |

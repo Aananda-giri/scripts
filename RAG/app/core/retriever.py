@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import nltk
 from nltk.corpus import stopwords
@@ -15,6 +18,7 @@ class HybridRetriever:
         self.embedder = embedder
         self.bm25: BM25Okapi | None = None
         self.bm25_chunks: list[dict] = []
+        self._chunks_by_id: dict[str, dict] = {}
         self._stemmer = PorterStemmer()
         try:
             self._stopwords = set(stopwords.words("english"))
@@ -24,6 +28,7 @@ class HybridRetriever:
 
     def build_bm25_index(self, chunks: list[dict]) -> None:
         self.bm25_chunks = chunks
+        self._chunks_by_id = {c["chunk_id"]: c for c in chunks}
         tokenized = [self._tokenize(c["text"]) for c in chunks]
         self.bm25 = BM25Okapi(tokenized)
 
@@ -38,16 +43,31 @@ class HybridRetriever:
                  bm25_top_k: int = 20,
                  hybrid_top_k: int = 10) -> list[dict]:
 
-        vector_hits = self._vector_search(query, vector_top_k, filters)
-        bm25_hits = self._bm25_search(query, bm25_top_k)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            vec_future = pool.submit(
+                self._vector_search, query, vector_top_k, filters
+            )
+            bm25_future = pool.submit(
+                self._bm25_search, query, bm25_top_k
+            )
+            vector_hits = vec_future.result()
+            bm25_hits = bm25_future.result()
 
         fused = self._rrf_fuse(vector_hits, bm25_hits, k=rrf_k)
 
-        result_ids = {hit["chunk_id"] for hit in fused[:hybrid_top_k] if hit["chunk_id"]}
+        seen_jobs: set[str] = set()
+        deduped = []
+        for hit in fused:
+            job_id = hit.get("chunk", {}).get("job_id", "")
+            if job_id and job_id not in seen_jobs:
+                seen_jobs.add(job_id)
+                deduped.append(hit)
+
         results = []
-        for chunk in self.bm25_chunks:
-            if chunk["chunk_id"] in result_ids:
-                results.append(dict(chunk))
+        for hit in deduped[:hybrid_top_k]:
+            cid = hit["chunk_id"]
+            if cid and cid in self._chunks_by_id:
+                results.append(dict(self._chunks_by_id[cid]))
         return results[:top_k]
 
     def _vector_search(self, query: str, top_k: int,

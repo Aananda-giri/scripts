@@ -45,6 +45,17 @@ class QdrantStore:
                 field_schema=PayloadSchemaType.KEYWORD,
             )
 
+        self.client.create_payload_index(
+            collection_name=self.collection_name,
+            field_name="tags",
+            field_schema=PayloadSchemaType.KEYWORD,
+        )
+        self.client.create_payload_index(
+            collection_name=self.collection_name,
+            field_name="publication_date",
+            field_schema=PayloadSchemaType.DATETIME,
+        )
+
     def upsert_chunks(self, chunks: list[dict],
                       vectors: list[list[float]]) -> int:
         points = []
@@ -88,6 +99,7 @@ class QdrantStore:
             limit=top_k,
             query_filter=query_filter,
             with_payload=True,
+            with_vectors=False,
         )
         return results
 
@@ -96,7 +108,7 @@ class QdrantStore:
         return {
             "name": self.collection_name,
             "points_count": info.points_count,
-            "vectors_count": info.vectors_count,
+            "vectors_count": info.indexed_vectors_count,
         }
 
     @staticmethod
