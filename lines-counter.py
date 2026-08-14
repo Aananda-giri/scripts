@@ -4,6 +4,9 @@ import fnmatch
 import logging
 
 
+DEFAULT_EXTENSIONS = ['.py', '.html', '.md', '.js', '.ts', '.tsx', '.dart']
+IGNORE_DIRS = ['node_modules', '.archive', 'common', '.venv', 'venv', '.vscode', 'logs', '__pycache__', 'notebooks', 'google_chat_api']
+
 def setup_logging(log_level):
     """Set up logging with the specified level."""
     numeric_level = getattr(logging, log_level.upper(), None)
@@ -70,7 +73,7 @@ def count_lines_in_directory(directory, extensions=None, exclude_files=None, exc
         dict: Dictionary with extensions as keys and line counts as values
     """
     if extensions is None:
-        extensions = ['.py', '.html', '.md']
+        extensions = DEFAULT_EXTENSIONS
     
     if exclude_files is None:
         exclude_files = []
@@ -127,11 +130,11 @@ def count_lines_in_directory(directory, extensions=None, exclude_files=None, exc
 def main():
     parser = argparse.ArgumentParser(description='Count lines of code in specified file types')
     parser.add_argument('directory', type=str, nargs='?', default=os.getcwd(), help='Directory to scan')
-    parser.add_argument('--extensions', type=str, nargs='+', default=['.py', '.html', '.js'],
-                        help='File extensions to count (default: .py .html .js)')
+    parser.add_argument('--extensions', type=str, nargs='+', default=DEFAULT_EXTENSIONS,
+                        help='File extensions to count (default: .py .html .md .ts)')
     parser.add_argument('--exclude-files', type=str, nargs='+', default=['yarn.lock', 'package-lock.json'],
                         help='File patterns to exclude (e.g., "test_*.py", "setup.py")')
-    parser.add_argument('--exclude-dirs', type=str, nargs='+', default=['node_modules', '.archive', '.venv', '.vscode', 'logs'],
+    parser.add_argument('--exclude-dirs', type=str, nargs='+', default=IGNORE_DIRS,
                         help='Directory patterns to exclude (e.g., "venv", ".*_cache")')
     parser.add_argument('--log-level', type=str, default='WARNING',
                         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
