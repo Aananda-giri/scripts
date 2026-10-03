@@ -1,4 +1,5 @@
 import os
+import subprocess
 import argparse
 import fnmatch
 import io
@@ -7,7 +8,7 @@ import tokenize
 
 
 DEFAULT_EXTENSIONS = ['.py', '.html', '.md', '.js', '.ts', '.tsx', '.dart']
-IGNORE_DIRS = ['node_modules', '.archive', 'common', '.venv', 'venv', '.vscode', 'logs', '__pycache__', 'notebooks', 'google_chat_api']
+IGNORE_DIRS = ['node_modules', '.archive', 'common', '.venv', 'venv', '.vscode', 'logs', '__pycache__', 'notebooks', 'google_chat_api', 'raw']
 
 def setup_logging(log_level):
     """Set up logging with the specified level."""
@@ -167,7 +168,17 @@ def should_exclude(path, exclude_files, exclude_dirs):
     return False
 
 
-def count_lines_in_directory(directory, extensions=None, exclude_files=None, exclude_dirs=None):
+def git_tracked_files(directory):
+    """Return paths of git-tracked files under directory, or None if it isn't a git repo."""
+    try:
+        result = subprocess.run(['git', 'ls-files', '-z'], cwd=directory,
+                                capture_output=True, text=True, check=True)
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return [os.path.join(directory, f) for f in result.stdout.split('\0') if f]
+
+
+def count_lines_in_directory(directory, extensions=None, exclude_files=None, exclude_dirs=None, all_files=False):
     """
     Count lines of code in all files with specified extensions within a directory and its subdirectories.
     
@@ -176,6 +187,7 @@ def count_lines_in_directory(directory, extensions=None, exclude_files=None, exc
         extensions (list): List of file extensions to include (e.g., ['.py', '.html', '.md'])
         exclude_files (list): List of file patterns to exclude
         exclude_dirs (list): List of directory patterns to exclude
+        all_files (bool): Walk every file on disk instead of only git-tracked files
     
     Returns:
         dict: Dictionary with extensions as keys and line counts as values
@@ -202,7 +214,24 @@ def count_lines_in_directory(directory, extensions=None, exclude_files=None, exc
     if exclude_dirs:
         logging.info(f"Directory patterns to exclude: {', '.join(exclude_dirs)}")
     
-    # Walk through the directory and its subdirectories
+    tracked = None if all_files else git_tracked_files(directory)
+    if tracked is not None:
+        logging.info(f"Counting {len(tracked)} git-tracked files")
+        for file_path in tracked:
+            parts = os.path.relpath(file_path, directory).split(os.sep)
+            if any(fnmatch.fnmatch(d, pat) for d in parts[:-1] for pat in exclude_dirs):
+                continue
+            if any(fnmatch.fnmatch(parts[-1], pat) for pat in exclude_files):
+                continue
+            file_ext = os.path.splitext(file_path)[1].lower()
+            if file_ext in extensions and os.path.isfile(file_path):
+                line_count = count_lines_in_file(file_path)
+                extension_counts[file_ext] += line_count
+                file_counts[file_ext] += 1
+                file_details[file_ext].append((file_path, line_count))
+        return extension_counts, file_counts, file_details
+
+    # Not a git repo (or --all-files): walk every file on disk
     for root, dirs, files in os.walk(directory):
         # Modify dirs in-place to exclude directories
         dirs_before = len(dirs)
@@ -249,6 +278,8 @@ def main():
                         help='Set the logging level (default: INFO)')
     parser.add_argument('--detailed', action='store_true', default=False,
                         help='Show detailed information about each file')
+    parser.add_argument('--all-files', action='store_true', default=False,
+                        help='Count every file on disk, not just git-tracked ones')
     
     args = parser.parse_args()
     
@@ -263,7 +294,8 @@ def main():
         args.directory, 
         extensions, 
         args.exclude_files, 
-        args.exclude_dirs
+        args.exclude_dirs,
+        args.all_files
     )
     
     # Print the results
