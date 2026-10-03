@@ -1,7 +1,9 @@
 import os
 import argparse
 import fnmatch
+import io
 import logging
+import tokenize
 
 
 DEFAULT_EXTENSIONS = ['.py', '.html', '.md', '.js', '.ts', '.tsx', '.dart']
@@ -19,13 +21,119 @@ def setup_logging(log_level):
     )
 
 
+C_STYLE_EXTENSIONS = {'.js', '.ts', '.tsx', '.jsx', '.dart', '.css', '.java', '.c', '.cpp', '.go'}
+MARKUP_EXTENSIONS = {'.html', '.htm', '.md', '.xml'}
+
+
+def python_code_lines(source):
+    """Line numbers holding Python code: no blanks, # comments, or docstrings."""
+    skip = {tokenize.COMMENT, tokenize.NL, tokenize.NEWLINE, tokenize.INDENT,
+            tokenize.DEDENT, tokenize.ENCODING, tokenize.ENDMARKER}
+    tokens = list(tokenize.generate_tokens(io.StringIO(source).readline))
+    code_lines = set()
+    for i, tok in enumerate(tokens):
+        if tok.type in skip:
+            continue
+        if tok.type == tokenize.STRING:
+            # A string that is a whole statement on its own is a docstring
+            prev_type = tokens[i - 1].type if i > 0 else tokenize.NEWLINE
+            next_type = tokens[i + 1].type if i + 1 < len(tokens) else tokenize.NEWLINE
+            if prev_type in (tokenize.NEWLINE, tokenize.INDENT, tokenize.DEDENT, tokenize.NL, tokenize.ENCODING) \
+                    and next_type in (tokenize.NEWLINE, tokenize.ENDMARKER):
+                continue
+        code_lines.update(range(tok.start[0], tok.end[0] + 1))
+    return len(code_lines)
+
+
+def c_style_code_lines(source):
+    """Count lines with code, ignoring blanks, // and /* */ comments (string-aware)."""
+    count = 0
+    in_block = False
+    string_quote = None  # open ` template literal carries across lines
+    for line in source.splitlines():
+        has_code = False
+        i = 0
+        while i < len(line):
+            ch, nxt = line[i], line[i + 1:i + 2]
+            if in_block:
+                if ch == '*' and nxt == '/':
+                    in_block = False
+                    i += 2
+                    continue
+            elif string_quote:
+                has_code = True
+                if ch == '\\':
+                    i += 2
+                    continue
+                if ch == string_quote:
+                    string_quote = None
+            elif ch == '/' and nxt == '/':
+                break
+            elif ch == '/' and nxt == '*':
+                in_block = True
+                i += 2
+                continue
+            elif ch in '"\'`':
+                string_quote = ch
+                has_code = True
+            elif not ch.isspace():
+                has_code = True
+            i += 1
+        if string_quote in ('"', "'"):
+            string_quote = None  # plain quotes cannot span lines
+        if has_code:
+            count += 1
+    return count
+
+
+def markup_code_lines(source):
+    """Count non-blank lines, ignoring <!-- --> comments."""
+    count = 0
+    in_comment = False
+    for line in source.splitlines():
+        rest = line
+        has_content = False
+        while rest:
+            if in_comment:
+                end = rest.find('-->')
+                if end == -1:
+                    break
+                in_comment = False
+                rest = rest[end + 3:]
+            else:
+                start = rest.find('<!--')
+                if rest[:start if start != -1 else None].strip():
+                    has_content = True
+                if start == -1:
+                    break
+                in_comment = True
+                rest = rest[start + 4:]
+        if has_content:
+            count += 1
+    return count
+
+
 def count_lines_in_file(file_path):
-    """Count the number of lines in a given file."""
+    """Count lines of code in a file, skipping blank and comment lines."""
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
-            line_count = len(file.readlines())
-            logging.debug(f"File: {file_path} - {line_count} lines")
-            return line_count
+            source = file.read()
+        ext = os.path.splitext(file_path)[1].lower()
+        if ext == '.py':
+            try:
+                line_count = python_code_lines(source)
+            except (tokenize.TokenError, SyntaxError):
+                # Unparseable file: fall back to skipping blanks and # lines
+                line_count = sum(1 for l in source.splitlines()
+                                 if l.strip() and not l.strip().startswith('#'))
+        elif ext in C_STYLE_EXTENSIONS:
+            line_count = c_style_code_lines(source)
+        elif ext in MARKUP_EXTENSIONS:
+            line_count = markup_code_lines(source)
+        else:
+            line_count = sum(1 for l in source.splitlines() if l.strip())
+        logging.debug(f"File: {file_path} - {line_count} lines")
+        return line_count
     except Exception as e:
         logging.error(f"Error reading {file_path}: {e}")
         return 0
